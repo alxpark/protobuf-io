@@ -490,7 +490,7 @@ function handleDownloadBinary() {
     }
     
     // Use message type full name for filename
-    const fileName = currentMessageType ? `${currentMessageType.fullName || currentMessageType.name}.pb` : 'encoded.pb';
+    const fileName = currentMessageType ? `${currentMessageType.fullName || currentMessageType.name}.encoded.pb` : 'encoded.pb';
     
     const blob = new Blob([window.encodedBinaryData], { type: 'application/octet-stream' });
     const url = URL.createObjectURL(blob);
@@ -513,7 +513,7 @@ function handleDownloadJson() {
     }
     
     // Use message type full name for filename
-    const fileName = currentMessageType ? `${currentMessageType.fullName || currentMessageType.name}.json` : 'decoded.json';
+    const fileName = currentMessageType ? `${currentMessageType.fullName || currentMessageType.name}.decoded.json` : 'decoded.json';
     
     const blob = new Blob([jsonText], { type: 'application/json' });
     const url = URL.createObjectURL(blob);
