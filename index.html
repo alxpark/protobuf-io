@@ -18,11 +18,15 @@
             <section class="card">
                 <h2>1. Upload Proto Schema</h2>
                 <div class="upload-area">
-                    <input type="file" id="protoFileInput" accept=".proto" multiple />
+                    <input type="file" id="protoFileInput" accept=".proto" multiple webkitdirectory directory />
                     <label for="protoFileInput" class="file-label">
                         <span class="file-icon">📁</span>
-                        <span id="protoFileName">Choose .proto file(s) - supports imports</span>
+                        <span id="protoFileName">Choose .proto file(s) or folder - supports imports</span>
                     </label>
+                </div>
+                <div style="margin-top: 10px; display: flex; gap: 10px;">
+                    <button id="selectFilesBtn" class="secondary-btn" style="flex: 1; display: inline-block; margin: 0;">📄 Select Files</button>
+                    <button id="selectFolderBtn" class="secondary-btn" style="flex: 1; display: inline-block; margin: 0;">📂 Select Folder</button>
                 </div>
                 <div id="schemaStatus" class="status-message"></div>
             </section>

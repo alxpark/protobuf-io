@@ -9,6 +9,8 @@ const elements = {
     protoFileName: document.getElementById('protoFileName'),
     schemaStatus: document.getElementById('schemaStatus'),
     messageTypeSelect: document.getElementById('messageTypeSelect'),
+    selectFilesBtn: document.getElementById('selectFilesBtn'),
+    selectFolderBtn: document.getElementById('selectFolderBtn'),
     
     // Decode elements
     binaryFileInput: document.getElementById('binaryFileInput'),
@@ -38,6 +40,16 @@ const elements = {
 function init() {
     // File uploads
     elements.protoFileInput.addEventListener('change', handleProtoFileUpload);
+    elements.selectFilesBtn.addEventListener('click', () => {
+        elements.protoFileInput.removeAttribute('webkitdirectory');
+        elements.protoFileInput.removeAttribute('directory');
+        elements.protoFileInput.click();
+    });
+    elements.selectFolderBtn.addEventListener('click', () => {
+        elements.protoFileInput.setAttribute('webkitdirectory', '');
+        elements.protoFileInput.setAttribute('directory', '');
+        elements.protoFileInput.click();
+    });
     elements.binaryFileInput.addEventListener('change', handleBinaryFileUpload);
     
     // Message type selection
@@ -83,24 +95,33 @@ async function handleProtoFileUpload(event) {
     const files = Array.from(event.target.files);
     if (files.length === 0) return;
     
-    if (files.length === 1) {
-        elements.protoFileName.textContent = files[0].name;
+    // Filter only .proto files
+    const protoFilesOnly = files.filter(f => f.name.endsWith('.proto'));
+    
+    if (protoFilesOnly.length === 0) {
+        showError('No .proto files found in selection');
+        return;
+    }
+    
+    if (protoFilesOnly.length === 1) {
+        elements.protoFileName.textContent = protoFilesOnly[0].name;
     } else {
-        elements.protoFileName.textContent = `${files.length} files selected`;
+        elements.protoFileName.textContent = `${protoFilesOnly.length} .proto files selected`;
     }
     hideError();
     
     try {
-        // Read all files
+        // Read all files with their paths
         const protoFiles = await Promise.all(
-            files.map(async file => ({
+            protoFilesOnly.map(async file => ({
                 name: file.name,
+                path: file.webkitRelativePath || file.name,
                 content: await readFileAsText(file)
             }))
         );
         
         await loadProtoSchemas(protoFiles);
-        showStatus(`Schema loaded successfully! (${files.length} file${files.length > 1 ? 's' : ''})`, 'success');
+        showStatus(`Schema loaded successfully! (${protoFilesOnly.length} file${protoFilesOnly.length > 1 ? 's' : ''})`, 'success');
     } catch (error) {
         showError(`Failed to load schema: ${error.message}`);
         showStatus('Failed to load schema', 'error');
@@ -115,6 +136,7 @@ async function loadProtoSchemas(protoFiles) {
         
         // Extract imports from all files
         const allImports = new Set();
+        const uploadedPaths = new Set(protoFiles.map(f => f.path || f.name));
         const uploadedFileNames = new Set(protoFiles.map(f => f.name));
         
         protoFiles.forEach(file => {
@@ -125,7 +147,8 @@ async function loadProtoSchemas(protoFiles) {
         // Check for missing imports
         const missingImports = Array.from(allImports).filter(imp => {
             const fileName = imp.split('/').pop(); // Get filename from path
-            return !uploadedFileNames.has(fileName) && !uploadedFileNames.has(imp);
+            // Check both full path and filename
+            return !uploadedPaths.has(imp) && !uploadedFileNames.has(fileName) && !uploadedFileNames.has(imp);
         });
         
         // Show warning but don't fail if imports are missing
@@ -139,7 +162,7 @@ async function loadProtoSchemas(protoFiles) {
         let parseErrors = [];
         for (const file of protoFiles) {
             try {
-                protobuf.parse(file.content, protoRoot, { keepCase: true, filename: file.name });
+                protobuf.parse(file.content, protoRoot, { keepCase: true, filename: file.path || file.name });
             } catch (error) {
                 parseErrors.push(`${file.name}: ${error.message}`);
                 console.error(`Error parsing ${file.name}:`, error);
