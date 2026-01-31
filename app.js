@@ -23,6 +23,7 @@ const elements = {
     encodeOutput: document.getElementById('encodeOutput'),
     downloadBinaryBtn: document.getElementById('downloadBinaryBtn'),
     copyHexBtn: document.getElementById('copyHexBtn'),
+    generateSampleBtn: document.getElementById('generateSampleBtn'),
     
     errorDisplay: document.getElementById('errorDisplay'),
     
@@ -44,6 +45,7 @@ function init() {
     // Action buttons
     elements.decodeBtn.addEventListener('click', handleDecode);
     elements.encodeBtn.addEventListener('click', handleEncode);
+    elements.generateSampleBtn.addEventListener('click', generateSampleJSON);
     
     // Copy buttons
     elements.copyDecodeBtn.addEventListener('click', () => copyToClipboard(elements.decodeOutput.value));
@@ -207,12 +209,14 @@ function handleMessageTypeChange(event) {
         currentMessageType = null;
         elements.decodeBtn.disabled = true;
         elements.encodeBtn.disabled = true;
+        elements.generateSampleBtn.disabled = true;
         return;
     }
     
     try {
         currentMessageType = protoRoot.lookupType(messageTypeName);
         elements.encodeBtn.disabled = false;
+        elements.generateSampleBtn.disabled = false;
         
         if (binaryData) {
             elements.decodeBtn.disabled = false;
@@ -343,6 +347,90 @@ function handleDownloadBinary() {
     a.click();
     document.body.removeChild(a);
     URL.revokeObjectURL(url);
+}
+
+// Generate sample JSON from message type
+function generateSampleJSON() {
+    if (!currentMessageType) {
+        showError('Please select a message type');
+        return;
+    }
+    
+    try {
+        const sampleData = generateSampleData(currentMessageType);
+        const jsonString = JSON.stringify(sampleData, null, 2);
+        elements.jsonInput.value = jsonString;
+        hideError();
+    } catch (error) {
+        showError(`Failed to generate sample: ${error.message}`);
+    }
+}
+
+// Recursively generate sample data for a message type
+function generateSampleData(messageType) {
+    const sample = {};
+    
+    if (!messageType.fields) return sample;
+    
+    Object.values(messageType.fields).forEach(field => {
+        const value = generateFieldValue(field, messageType);
+        if (value !== undefined) {
+            sample[field.name] = value;
+        }
+    });
+    
+    return sample;
+}
+
+// Generate value for a specific field
+function generateFieldValue(field, parentType) {
+    // Handle repeated fields
+    if (field.repeated) {
+        return [generateSingleFieldValue(field, parentType)];
+    }
+    
+    return generateSingleFieldValue(field, parentType);
+}
+
+// Generate a single value based on field type
+function generateSingleFieldValue(field, parentType) {
+    // Handle enum types
+    if (field.resolvedType && field.resolvedType instanceof protobuf.Enum) {
+        const enumValues = Object.keys(field.resolvedType.values);
+        return enumValues[0] || 0;
+    }
+    
+    // Handle nested message types
+    if (field.resolvedType && field.resolvedType instanceof protobuf.Type) {
+        return generateSampleData(field.resolvedType);
+    }
+    
+    // Handle primitive types
+    switch (field.type) {
+        case 'string':
+            return `sample_${field.name}`;
+        case 'int32':
+        case 'uint32':
+        case 'sint32':
+        case 'fixed32':
+        case 'sfixed32':
+            return 123;
+        case 'int64':
+        case 'uint64':
+        case 'sint64':
+        case 'fixed64':
+        case 'sfixed64':
+            return 1234567890;
+        case 'float':
+        case 'double':
+            return 123.45;
+        case 'bool':
+            return true;
+        case 'bytes':
+            return 'c2FtcGxl'; // base64 encoded "sample"
+        default:
+            return null;
+    }
 }
 
 // Utility: Read file as text

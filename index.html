@@ -64,7 +64,10 @@
                 <div id="encode-tab" class="tab-content">
                     <h2>Encode JSON to Protobuf Binary</h2>
                     <div class="input-section">
-                        <h3>JSON Input:</h3>
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+                            <h3>JSON Input:</h3>
+                            <button id="generateSampleBtn" class="secondary-btn" disabled style="display: inline-block; margin: 0;">✨ Generate Sample JSON</button>
+                        </div>
                         <textarea id="jsonInput" placeholder='Enter JSON data, e.g., {"name": "John", "id": 123, "email": "john@example.com"}'></textarea>
                     </div>
                     <button id="encodeBtn" class="action-btn" disabled>🔒 Encode to Binary</button>
