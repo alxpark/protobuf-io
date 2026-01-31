@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Protobuf Encoder/Decoder</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>🔧 Protobuf Encoder/Decoder</h1>
+            <p>Upload a .proto schema file and encode/decode protobuf binary data</p>
+        </header>
+
+        <main>
+            <!-- Schema Upload Section -->
+            <section class="card">
+                <h2>1. Upload Proto Schema</h2>
+                <div class="upload-area">
+                    <input type="file" id="protoFileInput" accept=".proto" />
+                    <label for="protoFileInput" class="file-label">
+                        <span class="file-icon">📁</span>
+                        <span id="protoFileName">Choose .proto file</span>
+                    </label>
+                </div>
+                <div id="schemaStatus" class="status-message"></div>
+            </section>
+
+            <!-- Message Type Selection -->
+            <section class="card">
+                <h2>2. Select Message Type</h2>
+                <select id="messageTypeSelect" disabled>
+                    <option value="">-- Load a .proto file first --</option>
+                </select>
+            </section>
+
+            <!-- Encode/Decode Tabs -->
+            <section class="card">
+                <div class="tabs">
+                    <button class="tab-button active" data-tab="decode">Decode Binary → JSON</button>
+                    <button class="tab-button" data-tab="encode">Encode JSON → Binary</button>
+                </div>
+
+                <!-- Decode Tab -->
+                <div id="decode-tab" class="tab-content active">
+                    <h2>Decode Protobuf Binary</h2>
+                    <div class="upload-area">
+                        <input type="file" id="binaryFileInput" accept=".bin,.pb,.protobuf" />
+                        <label for="binaryFileInput" class="file-label">
+                            <span class="file-icon">📦</span>
+                            <span id="binaryFileName">Choose binary file</span>
+                        </label>
+                    </div>
+                    <button id="decodeBtn" class="action-btn" disabled>🔓 Decode to JSON</button>
+                    <div class="output-section">
+                        <h3>Decoded JSON Output:</h3>
+                        <textarea id="decodeOutput" readonly placeholder="Decoded JSON will appear here..."></textarea>
+                        <button id="copyDecodeBtn" class="secondary-btn" style="display: none;">📋 Copy JSON</button>
+                    </div>
+                </div>
+
+                <!-- Encode Tab -->
+                <div id="encode-tab" class="tab-content">
+                    <h2>Encode JSON to Protobuf Binary</h2>
+                    <div class="input-section">
+                        <h3>JSON Input:</h3>
+                        <textarea id="jsonInput" placeholder='Enter JSON data, e.g., {"name": "John", "id": 123, "email": "john@example.com"}'></textarea>
+                    </div>
+                    <button id="encodeBtn" class="action-btn" disabled>🔒 Encode to Binary</button>
+                    <div class="output-section">
+                        <h3>Encoded Binary (Hex):</h3>
+                        <textarea id="encodeOutput" readonly placeholder="Hex representation will appear here..."></textarea>
+                        <div class="button-group">
+                            <button id="downloadBinaryBtn" class="secondary-btn" style="display: none;">💾 Download Binary File</button>
+                            <button id="copyHexBtn" class="secondary-btn" style="display: none;">📋 Copy Hex</button>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Error Display -->
+            <div id="errorDisplay" class="error-message" style="display: none;"></div>
+        </main>
+
+        <footer>
+            <p>Built with <a href="https://github.com/protobufjs/protobuf.js" target="_blank">protobuf.js</a></p>
+        </footer>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/protobufjs@7.2.5/dist/protobuf.min.js"></script>
+    <script src="app.js"></script>
+</body>
+</html>

@@ -1,0 +1,22 @@
+{
+  "name": "protobuf-webapp",
+  "version": "1.0.0",
+  "description": "Web application for encoding/decoding protobuf binary files",
+  "main": "index.html",
+  "scripts": {
+    "start": "python3 -m http.server 8080",
+    "dev": "python3 -m http.server 8080"
+  },
+  "dependencies": {
+    "protobufjs": "^7.2.5"
+  },
+  "devDependencies": {},
+  "keywords": [
+    "protobuf",
+    "binary",
+    "encoder",
+    "decoder"
+  ],
+  "author": "",
+  "license": "MIT"
+}

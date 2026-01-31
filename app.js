@@ -1,0 +1,348 @@
+// Global variables
+let protoRoot = null;
+let currentMessageType = null;
+let binaryData = null;
+
+// DOM Elements
+const elements = {
+    protoFileInput: document.getElementById('protoFileInput'),
+    protoFileName: document.getElementById('protoFileName'),
+    schemaStatus: document.getElementById('schemaStatus'),
+    messageTypeSelect: document.getElementById('messageTypeSelect'),
+    
+    // Decode elements
+    binaryFileInput: document.getElementById('binaryFileInput'),
+    binaryFileName: document.getElementById('binaryFileName'),
+    decodeBtn: document.getElementById('decodeBtn'),
+    decodeOutput: document.getElementById('decodeOutput'),
+    copyDecodeBtn: document.getElementById('copyDecodeBtn'),
+    
+    // Encode elements
+    jsonInput: document.getElementById('jsonInput'),
+    encodeBtn: document.getElementById('encodeBtn'),
+    encodeOutput: document.getElementById('encodeOutput'),
+    downloadBinaryBtn: document.getElementById('downloadBinaryBtn'),
+    copyHexBtn: document.getElementById('copyHexBtn'),
+    
+    errorDisplay: document.getElementById('errorDisplay'),
+    
+    // Tabs
+    tabButtons: document.querySelectorAll('.tab-button'),
+    decodeTab: document.getElementById('decode-tab'),
+    encodeTab: document.getElementById('encode-tab')
+};
+
+// Initialize event listeners
+function init() {
+    // File uploads
+    elements.protoFileInput.addEventListener('change', handleProtoFileUpload);
+    elements.binaryFileInput.addEventListener('change', handleBinaryFileUpload);
+    
+    // Message type selection
+    elements.messageTypeSelect.addEventListener('change', handleMessageTypeChange);
+    
+    // Action buttons
+    elements.decodeBtn.addEventListener('click', handleDecode);
+    elements.encodeBtn.addEventListener('click', handleEncode);
+    
+    // Copy buttons
+    elements.copyDecodeBtn.addEventListener('click', () => copyToClipboard(elements.decodeOutput.value));
+    elements.copyHexBtn.addEventListener('click', () => copyToClipboard(elements.encodeOutput.value));
+    
+    // Download button
+    elements.downloadBinaryBtn.addEventListener('click', handleDownloadBinary);
+    
+    // Tab switching
+    elements.tabButtons.forEach(button => {
+        button.addEventListener('click', () => switchTab(button.dataset.tab));
+    });
+}
+
+// Tab switching
+function switchTab(tabName) {
+    elements.tabButtons.forEach(btn => btn.classList.remove('active'));
+    document.querySelector(`[data-tab="${tabName}"]`).classList.add('active');
+    
+    elements.decodeTab.classList.remove('active');
+    elements.encodeTab.classList.remove('active');
+    
+    if (tabName === 'decode') {
+        elements.decodeTab.classList.add('active');
+    } else {
+        elements.encodeTab.classList.add('active');
+    }
+    
+    hideError();
+}
+
+// Handle .proto file upload
+async function handleProtoFileUpload(event) {
+    const file = event.target.files[0];
+    if (!file) return;
+    
+    elements.protoFileName.textContent = file.name;
+    hideError();
+    
+    try {
+        const protoContent = await readFileAsText(file);
+        await loadProtoSchema(protoContent, file.name);
+        showStatus('Schema loaded successfully!', 'success');
+    } catch (error) {
+        showError(`Failed to load schema: ${error.message}`);
+        showStatus('Failed to load schema', 'error');
+    }
+}
+
+// Load and parse .proto schema
+async function loadProtoSchema(protoContent, filename) {
+    try {
+        protoRoot = protobuf.parse(protoContent, { keepCase: true }).root;
+        
+        // Extract all message types
+        const messageTypes = extractMessageTypes(protoRoot);
+        
+        if (messageTypes.length === 0) {
+            throw new Error('No message types found in the .proto file');
+        }
+        
+        // Populate message type dropdown
+        elements.messageTypeSelect.innerHTML = '<option value="">-- Select a message type --</option>';
+        messageTypes.forEach(type => {
+            const option = document.createElement('option');
+            option.value = type;
+            option.textContent = type;
+            elements.messageTypeSelect.appendChild(option);
+        });
+        
+        elements.messageTypeSelect.disabled = false;
+        
+    } catch (error) {
+        throw new Error(`Schema parsing failed: ${error.message}`);
+    }
+}
+
+// Extract message types from proto root
+function extractMessageTypes(root, prefix = '') {
+    const types = [];
+    
+    if (root.nested) {
+        for (const [name, nested] of Object.entries(root.nested)) {
+            const fullName = prefix ? `${prefix}.${name}` : name;
+            
+            if (nested instanceof protobuf.Type) {
+                types.push(fullName);
+            }
+            
+            if (nested.nested) {
+                types.push(...extractMessageTypes(nested, fullName));
+            }
+        }
+    }
+    
+    return types;
+}
+
+// Handle message type selection
+function handleMessageTypeChange(event) {
+    const messageTypeName = event.target.value;
+    
+    if (!messageTypeName) {
+        currentMessageType = null;
+        elements.decodeBtn.disabled = true;
+        elements.encodeBtn.disabled = true;
+        return;
+    }
+    
+    try {
+        currentMessageType = protoRoot.lookupType(messageTypeName);
+        elements.encodeBtn.disabled = false;
+        
+        if (binaryData) {
+            elements.decodeBtn.disabled = false;
+        }
+        
+        hideError();
+    } catch (error) {
+        showError(`Failed to load message type: ${error.message}`);
+        currentMessageType = null;
+    }
+}
+
+// Handle binary file upload for decoding
+async function handleBinaryFileUpload(event) {
+    const file = event.target.files[0];
+    if (!file) return;
+    
+    elements.binaryFileName.textContent = file.name;
+    hideError();
+    
+    try {
+        binaryData = await readFileAsArrayBuffer(file);
+        
+        if (currentMessageType) {
+            elements.decodeBtn.disabled = false;
+        }
+    } catch (error) {
+        showError(`Failed to read binary file: ${error.message}`);
+        binaryData = null;
+    }
+}
+
+// Handle decode operation
+function handleDecode() {
+    if (!currentMessageType || !binaryData) {
+        showError('Please select a message type and upload a binary file');
+        return;
+    }
+    
+    try {
+        const uint8Array = new Uint8Array(binaryData);
+        const decoded = currentMessageType.decode(uint8Array);
+        const jsonObject = currentMessageType.toObject(decoded, {
+            longs: String,
+            enums: String,
+            bytes: String,
+            defaults: true,
+            arrays: true,
+            objects: true,
+            oneofs: true
+        });
+        
+        const jsonString = JSON.stringify(jsonObject, null, 2);
+        elements.decodeOutput.value = jsonString;
+        elements.copyDecodeBtn.style.display = 'inline-block';
+        hideError();
+        
+    } catch (error) {
+        showError(`Decoding failed: ${error.message}`);
+        elements.decodeOutput.value = '';
+        elements.copyDecodeBtn.style.display = 'none';
+    }
+}
+
+// Handle encode operation
+function handleEncode() {
+    if (!currentMessageType) {
+        showError('Please select a message type');
+        return;
+    }
+    
+    const jsonText = elements.jsonInput.value.trim();
+    if (!jsonText) {
+        showError('Please enter JSON data to encode');
+        return;
+    }
+    
+    try {
+        const jsonObject = JSON.parse(jsonText);
+        
+        // Verify the message
+        const errMsg = currentMessageType.verify(jsonObject);
+        if (errMsg) {
+            throw new Error(`Invalid message: ${errMsg}`);
+        }
+        
+        // Create and encode message
+        const message = currentMessageType.create(jsonObject);
+        const buffer = currentMessageType.encode(message).finish();
+        
+        // Convert to hex for display
+        const hexString = bufferToHex(buffer);
+        elements.encodeOutput.value = hexString;
+        
+        // Store binary data for download
+        window.encodedBinaryData = buffer;
+        
+        elements.downloadBinaryBtn.style.display = 'inline-block';
+        elements.copyHexBtn.style.display = 'inline-block';
+        hideError();
+        
+    } catch (error) {
+        showError(`Encoding failed: ${error.message}`);
+        elements.encodeOutput.value = '';
+        elements.downloadBinaryBtn.style.display = 'none';
+        elements.copyHexBtn.style.display = 'none';
+    }
+}
+
+// Handle binary file download
+function handleDownloadBinary() {
+    if (!window.encodedBinaryData) {
+        showError('No encoded data to download');
+        return;
+    }
+    
+    const blob = new Blob([window.encodedBinaryData], { type: 'application/octet-stream' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'encoded.pb';
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+}
+
+// Utility: Read file as text
+function readFileAsText(file) {
+    return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = (e) => resolve(e.target.result);
+        reader.onerror = (e) => reject(new Error('File reading failed'));
+        reader.readAsText(file);
+    });
+}
+
+// Utility: Read file as array buffer
+function readFileAsArrayBuffer(file) {
+    return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = (e) => resolve(e.target.result);
+        reader.onerror = (e) => reject(new Error('File reading failed'));
+        reader.readAsArrayBuffer(file);
+    });
+}
+
+// Utility: Convert buffer to hex string
+function bufferToHex(buffer) {
+    return Array.from(buffer)
+        .map(byte => byte.toString(16).padStart(2, '0'))
+        .join(' ')
+        .toUpperCase();
+}
+
+// Utility: Copy to clipboard
+async function copyToClipboard(text) {
+    try {
+        await navigator.clipboard.writeText(text);
+        showStatus('Copied to clipboard!', 'success');
+        setTimeout(() => {
+            elements.schemaStatus.textContent = '';
+            elements.schemaStatus.className = 'status-message';
+        }, 2000);
+    } catch (error) {
+        showError('Failed to copy to clipboard');
+    }
+}
+
+// UI helpers
+function showError(message) {
+    elements.errorDisplay.textContent = `⚠️ ${message}`;
+    elements.errorDisplay.style.display = 'block';
+}
+
+function hideError() {
+    elements.errorDisplay.style.display = 'none';
+}
+
+function showStatus(message, type) {
+    elements.schemaStatus.textContent = type === 'success' ? `✅ ${message}` : `❌ ${message}`;
+    elements.schemaStatus.className = `status-message ${type}`;
+}
+
+// Initialize app when DOM is loaded
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', init);
+} else {
+    init();
+}
