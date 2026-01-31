@@ -1,0 +1,7 @@
+{
+  "id": 1001,
+  "username": "johndoe",
+  "email": "john.doe@example.com",
+  "is_active": true,
+  "created_at": 1706659200
+}

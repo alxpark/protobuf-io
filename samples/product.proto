@@ -1,0 +1,35 @@
+syntax = "proto3";
+
+// E-commerce product catalog
+message Product {
+  string id = 1;
+  string name = 2;
+  string description = 3;
+  double price = 4;
+  int32 stock_quantity = 5;
+  Category category = 6;
+  repeated string tags = 7;
+  
+  enum Category {
+    UNKNOWN = 0;
+    ELECTRONICS = 1;
+    CLOTHING = 2;
+    FOOD = 3;
+    BOOKS = 4;
+    TOYS = 5;
+  }
+  
+  message Review {
+    string user_id = 1;
+    int32 rating = 2;
+    string comment = 3;
+    int64 timestamp = 4;
+  }
+  
+  repeated Review reviews = 8;
+}
+
+message ProductCatalog {
+  repeated Product products = 1;
+  int32 total_count = 2;
+}

@@ -1,0 +1,12 @@
+{
+  "sensor_id": "temp-sensor-01",
+  "timestamp": 1706659200,
+  "type": "TEMPERATURE",
+  "value": 22.5,
+  "unit": "celsius",
+  "location": {
+    "latitude": 37.7749,
+    "longitude": -122.4194,
+    "room": "Living Room"
+  }
+}

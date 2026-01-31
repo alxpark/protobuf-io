@@ -1,0 +1,23 @@
+{
+  "products": [
+    {
+      "id": "prod-001",
+      "name": "Laptop",
+      "description": "15-inch laptop",
+      "price": 999.99,
+      "stock_quantity": 10,
+      "category": "ELECTRONICS",
+      "tags": ["computers", "laptop"]
+    },
+    {
+      "id": "prod-002",
+      "name": "T-Shirt",
+      "description": "Cotton t-shirt",
+      "price": 19.99,
+      "stock_quantity": 100,
+      "category": "CLOTHING",
+      "tags": ["apparel", "casual"]
+    }
+  ],
+  "total_count": 2
+}

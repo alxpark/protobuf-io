@@ -1,0 +1,32 @@
+syntax = "proto3";
+
+// IoT sensor data
+message SensorReading {
+  string sensor_id = 1;
+  int64 timestamp = 2;
+  SensorType type = 3;
+  double value = 4;
+  string unit = 5;
+  Location location = 6;
+  
+  enum SensorType {
+    TEMPERATURE = 0;
+    HUMIDITY = 1;
+    PRESSURE = 2;
+    LIGHT = 3;
+    MOTION = 4;
+    AIR_QUALITY = 5;
+  }
+  
+  message Location {
+    double latitude = 1;
+    double longitude = 2;
+    string room = 3;
+  }
+}
+
+message SensorBatch {
+  repeated SensorReading readings = 1;
+  string device_id = 2;
+  int64 batch_timestamp = 3;
+}

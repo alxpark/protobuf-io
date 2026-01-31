@@ -1,0 +1,42 @@
+{
+  "readings": [
+    {
+      "sensor_id": "temp-01",
+      "timestamp": 1706659200,
+      "type": "TEMPERATURE",
+      "value": 22.5,
+      "unit": "celsius",
+      "location": {
+        "latitude": 37.7749,
+        "longitude": -122.4194,
+        "room": "Living Room"
+      }
+    },
+    {
+      "sensor_id": "hum-01",
+      "timestamp": 1706659260,
+      "type": "HUMIDITY",
+      "value": 45.0,
+      "unit": "percent",
+      "location": {
+        "latitude": 37.7749,
+        "longitude": -122.4194,
+        "room": "Living Room"
+      }
+    },
+    {
+      "sensor_id": "light-01",
+      "timestamp": 1706659320,
+      "type": "LIGHT",
+      "value": 350.0,
+      "unit": "lux",
+      "location": {
+        "latitude": 37.7749,
+        "longitude": -122.4194,
+        "room": "Bedroom"
+      }
+    }
+  ],
+  "device_id": "hub-main-001",
+  "batch_timestamp": 1706659400
+}

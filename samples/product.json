@@ -1,0 +1,23 @@
+{
+  "id": "prod-12345",
+  "name": "Wireless Bluetooth Headphones",
+  "description": "High-quality over-ear headphones with active noise cancellation",
+  "price": 149.99,
+  "stock_quantity": 45,
+  "category": "ELECTRONICS",
+  "tags": ["audio", "wireless", "bluetooth", "noise-cancelling"],
+  "reviews": [
+    {
+      "user_id": "user-101",
+      "rating": 5,
+      "comment": "Amazing sound quality and battery life!",
+      "timestamp": 1706486400
+    },
+    {
+      "user_id": "user-202",
+      "rating": 4,
+      "comment": "Great headphones, but a bit pricey",
+      "timestamp": 1706572800
+    }
+  ]
+}
