@@ -24,6 +24,7 @@ const elements = {
     downloadBinaryBtn: document.getElementById('downloadBinaryBtn'),
     copyHexBtn: document.getElementById('copyHexBtn'),
     generateSampleBtn: document.getElementById('generateSampleBtn'),
+    maxDepthInput: document.getElementById('maxDepthInput'),
     
     errorDisplay: document.getElementById('errorDisplay'),
     
@@ -127,28 +128,42 @@ async function loadProtoSchemas(protoFiles) {
             return !uploadedFileNames.has(fileName) && !uploadedFileNames.has(imp);
         });
         
+        // Show warning but don't fail if imports are missing
         if (missingImports.length > 0) {
             const fileList = missingImports.map(f => `  • ${f}`).join('\n');
-            showError(`Missing imported proto files:\n${fileList}\n\nPlease upload these files together with your main proto file.`);
+            console.warn(`Missing imported proto files:\n${fileList}`);
+            showStatus(`⚠️ Warning: Some imports may be missing (${missingImports.length} files). Check console for details.`, 'error');
         }
         
         // Parse all files into the same root to resolve imports
+        let parseErrors = [];
         for (const file of protoFiles) {
             try {
                 protobuf.parse(file.content, protoRoot, { keepCase: true, filename: file.name });
             } catch (error) {
-                throw new Error(`Error parsing ${file.name}: ${error.message}`);
+                parseErrors.push(`${file.name}: ${error.message}`);
+                console.error(`Error parsing ${file.name}:`, error);
             }
         }
         
+        // If all files failed to parse, throw error
+        if (parseErrors.length === protoFiles.length) {
+            throw new Error(`All files failed to parse:\n${parseErrors.join('\n')}`);
+        }
+        
         // Resolve all types
-        protoRoot.resolveAll();
+        try {
+            protoRoot.resolveAll();
+        } catch (error) {
+            console.warn('Some types could not be resolved:', error);
+            // Continue anyway - partial resolution might work
+        }
         
         // Extract all message types
         const messageTypes = extractMessageTypes(protoRoot);
         
         if (messageTypes.length === 0) {
-            throw new Error('No message types found in the .proto file(s)');
+            throw new Error('No message types found in the .proto file(s). Make sure your files contain message definitions.');
         }
         
         // Populate message type dropdown
@@ -162,7 +177,13 @@ async function loadProtoSchemas(protoFiles) {
         
         elements.messageTypeSelect.disabled = false;
         
+        // Show final status
+        if (parseErrors.length > 0) {
+            showStatus(`⚠️ Loaded with ${parseErrors.length} warning(s). Found ${messageTypes.length} message type(s).`, 'success');
+        }
+        
     } catch (error) {
+        console.error('Schema parsing failed:', error);
         throw new Error(`Schema parsing failed: ${error.message}`);
     }
 }
@@ -357,7 +378,9 @@ function generateSampleJSON() {
     }
     
     try {
-        const sampleData = generateSampleData(currentMessageType, 0, new Set());
+        // Get max depth from input (default to 3 if invalid)
+        const maxDepth = parseInt(elements.maxDepthInput.value) || 3;
+        const sampleData = generateSampleData(currentMessageType, 0, new Set(), maxDepth);
         const jsonString = JSON.stringify(sampleData, null, 2);
         elements.jsonInput.value = jsonString;
         hideError();
@@ -367,10 +390,9 @@ function generateSampleJSON() {
 }
 
 // Recursively generate sample data for a message type
-function generateSampleData(messageType, depth = 0, visitedTypes = new Set()) {
-    const MAX_DEPTH = 3; // Prevent infinite recursion
+function generateSampleData(messageType, depth = 0, visitedTypes = new Set(), maxDepth = 3) {
     
-    if (depth > MAX_DEPTH) {
+    if (depth > maxDepth) {
         return {}; // Return empty object at max depth
     }
     
@@ -382,7 +404,7 @@ function generateSampleData(messageType, depth = 0, visitedTypes = new Set()) {
     const typeKey = messageType.fullName || messageType.name;
     
     Object.values(messageType.fields).forEach(field => {
-        const value = generateFieldValue(field, messageType, depth, visitedTypes);
+        const value = generateFieldValue(field, messageType, depth, visitedTypes, maxDepth);
         if (value !== undefined) {
             sample[field.name] = value;
         }
@@ -392,18 +414,18 @@ function generateSampleData(messageType, depth = 0, visitedTypes = new Set()) {
 }
 
 // Generate value for a specific field
-function generateFieldValue(field, parentType, depth, visitedTypes) {
+function generateFieldValue(field, parentType, depth, visitedTypes, maxDepth) {
     // Handle repeated fields
     if (field.repeated) {
         // Only add one sample item for repeated fields
-        return [generateSingleFieldValue(field, parentType, depth, visitedTypes)];
+        return [generateSingleFieldValue(field, parentType, depth, visitedTypes, maxDepth)];
     }
     
-    return generateSingleFieldValue(field, parentType, depth, visitedTypes);
+    return generateSingleFieldValue(field, parentType, depth, visitedTypes, maxDepth);
 }
 
 // Generate a single value based on field type
-function generateSingleFieldValue(field, parentType, depth, visitedTypes) {
+function generateSingleFieldValue(field, parentType, depth, visitedTypes, maxDepth) {
     // Handle enum types
     if (field.resolvedType && field.resolvedType instanceof protobuf.Enum) {
         const enumValues = Object.keys(field.resolvedType.values);
@@ -423,7 +445,7 @@ function generateSingleFieldValue(field, parentType, depth, visitedTypes) {
         const newVisited = new Set(visitedTypes);
         newVisited.add(typeKey);
         
-        return generateSampleData(field.resolvedType, depth + 1, newVisited);
+        return generateSampleData(field.resolvedType, depth + 1, newVisited, maxDepth);
     }
     
     // Handle primitive types

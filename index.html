@@ -64,9 +64,13 @@
                 <div id="encode-tab" class="tab-content">
                     <h2>Encode JSON to Protobuf Binary</h2>
                     <div class="input-section">
-                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; gap: 15px;">
                             <h3>JSON Input:</h3>
-                            <button id="generateSampleBtn" class="secondary-btn" disabled style="display: inline-block; margin: 0;">✨ Generate Sample JSON</button>
+                            <div style="display: flex; align-items: center; gap: 10px;">
+                                <label for="maxDepthInput" style="font-size: 14px; color: #6c757d; white-space: nowrap;">Max Depth:</label>
+                                <input type="number" id="maxDepthInput" min="1" max="20" value="3" style="width: 60px; padding: 5px; border: 2px solid #e9ecef; border-radius: 4px; text-align: center;" title="Maximum nesting depth for sample generation (1-20)">
+                                <button id="generateSampleBtn" class="secondary-btn" disabled style="display: inline-block; margin: 0;">✨ Generate Sample JSON</button>
+                            </div>
                         </div>
                         <textarea id="jsonInput" placeholder='Enter JSON data, e.g., {"name": "John", "id": 123, "email": "john@example.com"}'></textarea>
                     </div>
