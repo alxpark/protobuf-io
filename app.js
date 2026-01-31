@@ -274,11 +274,14 @@ function handleDownloadBinary() {
         return;
     }
     
+    // Use message type name for filename
+    const fileName = currentMessageType ? `${currentMessageType.name}.pb` : 'encoded.pb';
+    
     const blob = new Blob([window.encodedBinaryData], { type: 'application/octet-stream' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = 'encoded.pb';
+    a.download = fileName;
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
