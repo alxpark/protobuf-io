@@ -25,6 +25,7 @@ const elements = {
     decodeBtn: document.getElementById('decodeBtn'),
     decodeOutput: document.getElementById('decodeOutput'),
     copyDecodeBtn: document.getElementById('copyDecodeBtn'),
+    downloadJsonBtn: document.getElementById('downloadJsonBtn'),
     
     // Encode elements
     jsonInput: document.getElementById('jsonInput'),
@@ -82,8 +83,9 @@ function init() {
     elements.copyDecodeBtn.addEventListener('click', () => copyToClipboard(elements.decodeOutput.value));
     elements.copyHexBtn.addEventListener('click', () => copyToClipboard(elements.encodeOutput.value));
     
-    // Download button
+    // Download buttons
     elements.downloadBinaryBtn.addEventListener('click', handleDownloadBinary);
+    elements.downloadJsonBtn.addEventListener('click', handleDownloadJson);
     
     // Tab switching
     elements.tabButtons.forEach(button => {
@@ -404,12 +406,14 @@ function handleDecode() {
         const jsonString = JSON.stringify(jsonObject, null, 2);
         elements.decodeOutput.value = jsonString;
         elements.copyDecodeBtn.style.display = 'inline-block';
+        elements.downloadJsonBtn.style.display = 'inline-block';
         hideError();
         
     } catch (error) {
         showError(`Decoding failed: ${error.message}`);
         elements.decodeOutput.value = '';
         elements.copyDecodeBtn.style.display = 'none';
+        elements.downloadJsonBtn.style.display = 'none';
     }
 }
 
@@ -467,10 +471,33 @@ function handleDownloadBinary() {
         return;
     }
     
-    // Use message type name for filename
-    const fileName = currentMessageType ? `${currentMessageType.name}.pb` : 'encoded.pb';
+    // Use message type full name for filename
+    const fileName = currentMessageType ? `${currentMessageType.fullName || currentMessageType.name}.pb` : 'encoded.pb';
     
     const blob = new Blob([window.encodedBinaryData], { type: 'application/octet-stream' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = fileName;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+}
+
+// Handle JSON file download
+function handleDownloadJson() {
+    const jsonText = elements.decodeOutput.value;
+    
+    if (!jsonText) {
+        showError('No JSON data to download');
+        return;
+    }
+    
+    // Use message type full name for filename
+    const fileName = currentMessageType ? `${currentMessageType.fullName || currentMessageType.name}.json` : 'decoded.json';
+    
+    const blob = new Blob([jsonText], { type: 'application/json' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
