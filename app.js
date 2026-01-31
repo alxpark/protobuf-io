@@ -609,7 +609,8 @@ function generateSingleFieldValue(field, parentType, depth, visitedTypes, maxDep
     // Handle enum types
     if (field.resolvedType && field.resolvedType instanceof protobuf.Enum) {
         const enumValues = Object.keys(field.resolvedType.values);
-        return enumValues[0] || 0;
+        const randomIndex = Math.floor(Math.random() * enumValues.length);
+        return enumValues[randomIndex] || 0;
     }
     
     // Handle nested message types
@@ -628,29 +629,51 @@ function generateSingleFieldValue(field, parentType, depth, visitedTypes, maxDep
         return generateSampleData(field.resolvedType, depth + 1, newVisited, maxDepth);
     }
     
-    // Handle primitive types
+    // Handle primitive types with randomized values
     switch (field.type) {
         case 'string':
-            return `sample_${field.name}`;
+            // Generate random strings based on field name hints
+            if (field.name.toLowerCase().includes('email')) {
+                return `user${Math.floor(Math.random() * 1000)}@example.com`;
+            } else if (field.name.toLowerCase().includes('name')) {
+                const names = ['Alice', 'Bob', 'Charlie', 'Diana', 'Eve', 'Frank', 'Grace', 'Henry'];
+                return names[Math.floor(Math.random() * names.length)];
+            } else if (field.name.toLowerCase().includes('url') || field.name.toLowerCase().includes('link')) {
+                return `https://example.com/${field.name}/${Math.floor(Math.random() * 1000)}`;
+            } else if (field.name.toLowerCase().includes('phone')) {
+                return `+1-555-${String(Math.floor(Math.random() * 10000)).padStart(4, '0')}`;
+            } else if (field.name.toLowerCase().includes('address')) {
+                return `${Math.floor(Math.random() * 9999) + 1} Main Street`;
+            } else if (field.name.toLowerCase().includes('city')) {
+                const cities = ['New York', 'Los Angeles', 'Chicago', 'Houston', 'Phoenix', 'Seattle'];
+                return cities[Math.floor(Math.random() * cities.length)];
+            } else if (field.name.toLowerCase().includes('country')) {
+                const countries = ['USA', 'Canada', 'UK', 'Germany', 'France', 'Japan'];
+                return countries[Math.floor(Math.random() * countries.length)];
+            } else {
+                return `sample_${field.name}_${Math.floor(Math.random() * 1000)}`;
+            }
         case 'int32':
         case 'uint32':
         case 'sint32':
         case 'fixed32':
         case 'sfixed32':
-            return 123;
+            return Math.floor(Math.random() * 10000);
         case 'int64':
         case 'uint64':
         case 'sint64':
         case 'fixed64':
         case 'sfixed64':
-            return 1234567890;
+            return Math.floor(Math.random() * 10000000000);
         case 'float':
         case 'double':
-            return 123.45;
+            return Math.round((Math.random() * 1000) * 100) / 100;
         case 'bool':
-            return true;
+            return Math.random() > 0.5;
         case 'bytes':
-            return 'c2FtcGxl'; // base64 encoded "sample"
+            // Generate random base64 encoded bytes
+            const randomStr = Math.random().toString(36).substring(2, 10);
+            return btoa(randomStr);
         default:
             return null;
     }
