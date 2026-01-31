@@ -1,7 +1,7 @@
 {
-  "name": "protobuf-webapp",
+  "name": "protobuf-io",
   "version": "1.0.0",
-  "description": "Web application for encoding/decoding protobuf binary files",
+  "description": "Web app for encoding/decoding protobuf binary files",
   "main": "index.html",
   "scripts": {
     "start": "python3 -m http.server 8080",

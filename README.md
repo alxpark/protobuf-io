@@ -1,4 +1,4 @@
-# Protobuf Encoder/Decoder Web App
+# Protobuf I/O
 
 A powerful web application for encoding and decoding Protocol Buffer binary files with advanced features like randomized sample data generation, drag-and-drop support, and intelligent message type search.
 
