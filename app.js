@@ -570,6 +570,9 @@ function generateSampleJSON() {
         isSampleJSON = true;
         updateDownloadSampleButton();
         hideError();
+        
+        // Automatically encode the generated sample JSON to binary
+        handleEncode();
     } catch (error) {
         showError(`Failed to generate sample: ${error.message}`);
     }
