@@ -4,6 +4,7 @@ let currentMessageType = null;
 let binaryData = null;
 let allMessageTypes = [];
 let selectedIndex = -1;
+let isSampleJSON = false; // Track if current jsonInput contains generated sample data
 
 // DOM Elements
 const elements = {
@@ -82,8 +83,14 @@ function init() {
     elements.generateSampleBtn.addEventListener('click', generateSampleJSON);
     elements.downloadSampleBtn.addEventListener('click', handleDownloadSample);
     
-    // Monitor jsonInput for changes to update Download Sample button state
-    elements.jsonInput.addEventListener('input', updateDownloadSampleButton);
+    // Monitor jsonInput for manual changes (not from sample generation)
+    elements.jsonInput.addEventListener('input', () => {
+        // If user manually types, it's no longer sample JSON
+        if (!elements.jsonInput.dataset.updating) {
+            isSampleJSON = false;
+            updateDownloadSampleButton();
+        }
+    });
     
     // Update max depth value display when slider changes
     elements.maxDepthInput.addEventListener('input', () => {
@@ -554,7 +561,13 @@ function generateSampleJSON() {
         const maxDepth = parseInt(elements.maxDepthInput.value) || 3;
         const sampleData = generateSampleData(currentMessageType, 0, new Set(), maxDepth);
         const jsonString = JSON.stringify(sampleData, null, 2);
+        
+        // Mark as updating to prevent input handler from clearing isSampleJSON flag
+        elements.jsonInput.dataset.updating = 'true';
         elements.jsonInput.value = jsonString;
+        delete elements.jsonInput.dataset.updating;
+        
+        isSampleJSON = true;
         updateDownloadSampleButton();
         hideError();
     } catch (error) {
@@ -562,10 +575,9 @@ function generateSampleJSON() {
     }
 }
 
-// Update Download Sample button visibility and enabled state based on jsonInput content
+// Update Download Sample button enabled state based on whether sample JSON exists
 function updateDownloadSampleButton() {
-    const hasContent = elements.jsonInput.value.trim().length > 0;
-    elements.downloadSampleBtn.disabled = !hasContent;
+    elements.downloadSampleBtn.disabled = !isSampleJSON;
 }
 
 // Recursively generate sample data for a message type
