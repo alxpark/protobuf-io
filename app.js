@@ -34,6 +34,7 @@ const elements = {
     downloadBinaryBtn: document.getElementById('downloadBinaryBtn'),
     copyHexBtn: document.getElementById('copyHexBtn'),
     generateSampleBtn: document.getElementById('generateSampleBtn'),
+    downloadSampleBtn: document.getElementById('downloadSampleBtn'),
     maxDepthInput: document.getElementById('maxDepthInput'),
     
     errorDisplay: document.getElementById('errorDisplay'),
@@ -78,6 +79,10 @@ function init() {
     elements.decodeBtn.addEventListener('click', handleDecode);
     elements.encodeBtn.addEventListener('click', handleEncode);
     elements.generateSampleBtn.addEventListener('click', generateSampleJSON);
+    elements.downloadSampleBtn.addEventListener('click', handleDownloadSample);
+    
+    // Monitor jsonInput for changes to update Download Sample button state
+    elements.jsonInput.addEventListener('input', updateDownloadSampleButton);
     
     // Copy buttons
     elements.copyDecodeBtn.addEventListener('click', () => copyToClipboard(elements.decodeOutput.value));
@@ -508,6 +513,29 @@ function handleDownloadJson() {
     URL.revokeObjectURL(url);
 }
 
+// Handle sample JSON download
+function handleDownloadSample() {
+    const jsonText = elements.jsonInput.value;
+    
+    if (!jsonText) {
+        showError('No sample JSON to download');
+        return;
+    }
+    
+    // Use message type full name for filename with .sample.json extension
+    const fileName = currentMessageType ? `${currentMessageType.fullName || currentMessageType.name}.sample.json` : 'sample.json';
+    
+    const blob = new Blob([jsonText], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = fileName;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+}
+
 // Generate sample JSON from message type
 function generateSampleJSON() {
     if (!currentMessageType) {
@@ -521,10 +549,18 @@ function generateSampleJSON() {
         const sampleData = generateSampleData(currentMessageType, 0, new Set(), maxDepth);
         const jsonString = JSON.stringify(sampleData, null, 2);
         elements.jsonInput.value = jsonString;
+        updateDownloadSampleButton();
         hideError();
     } catch (error) {
         showError(`Failed to generate sample: ${error.message}`);
     }
+}
+
+// Update Download Sample button visibility and enabled state based on jsonInput content
+function updateDownloadSampleButton() {
+    const hasContent = elements.jsonInput.value.trim().length > 0;
+    elements.downloadSampleBtn.style.display = hasContent ? 'inline-block' : 'none';
+    elements.downloadSampleBtn.disabled = !hasContent;
 }
 
 // Recursively generate sample data for a message type
