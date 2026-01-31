@@ -34,38 +34,21 @@
             <!-- Message Type Selection -->
             <section class="card">
                 <h2>2. Select Message Type</h2>
-                <select id="messageTypeSelect" disabled>
-                    <option value="">-- Load a .proto file first --</option>
-                </select>
+                <div class="autocomplete-wrapper">
+                    <input type="text" id="messageTypeInput" placeholder="Type to search message types..." disabled autocomplete="off" />
+                    <div id="messageTypeDropdown" class="autocomplete-dropdown"></div>
+                </div>
             </section>
 
             <!-- Encode/Decode Tabs -->
             <section class="card">
                 <div class="tabs">
-                    <button class="tab-button active" data-tab="decode">Decode Binary → JSON</button>
-                    <button class="tab-button" data-tab="encode">Encode JSON → Binary</button>
-                </div>
-
-                <!-- Decode Tab -->
-                <div id="decode-tab" class="tab-content active">
-                    <h2>Decode Protobuf Binary</h2>
-                    <div class="upload-area">
-                        <input type="file" id="binaryFileInput" accept=".bin,.pb,.protobuf" />
-                        <label for="binaryFileInput" class="file-label">
-                            <span class="file-icon">📦</span>
-                            <span id="binaryFileName">Choose binary file</span>
-                        </label>
-                    </div>
-                    <button id="decodeBtn" class="action-btn" disabled>🔓 Decode to JSON</button>
-                    <div class="output-section">
-                        <h3>Decoded JSON Output:</h3>
-                        <textarea id="decodeOutput" readonly placeholder="Decoded JSON will appear here..."></textarea>
-                        <button id="copyDecodeBtn" class="secondary-btn" style="display: none;">📋 Copy JSON</button>
-                    </div>
+                    <button class="tab-button active" data-tab="encode">Encode JSON → Binary</button>
+                    <button class="tab-button" data-tab="decode">Decode Binary → JSON</button>
                 </div>
 
                 <!-- Encode Tab -->
-                <div id="encode-tab" class="tab-content">
+                <div id="encode-tab" class="tab-content active">
                     <h2>Encode JSON to Protobuf Binary</h2>
                     <div class="input-section">
                         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; gap: 15px;">
@@ -86,6 +69,24 @@
                             <button id="downloadBinaryBtn" class="secondary-btn" style="display: none;">💾 Download Binary File</button>
                             <button id="copyHexBtn" class="secondary-btn" style="display: none;">📋 Copy Hex</button>
                         </div>
+                    </div>
+                </div>
+
+                <!-- Decode Tab -->
+                <div id="decode-tab" class="tab-content">
+                    <h2>Decode Protobuf Binary</h2>
+                    <div class="upload-area">
+                        <input type="file" id="binaryFileInput" accept=".bin,.pb,.protobuf" />
+                        <label for="binaryFileInput" class="file-label">
+                            <span class="file-icon">📦</span>
+                            <span id="binaryFileName">Choose binary file</span>
+                        </label>
+                    </div>
+                    <button id="decodeBtn" class="action-btn" disabled>🔓 Decode to JSON</button>
+                    <div class="output-section">
+                        <h3>Decoded JSON Output:</h3>
+                        <textarea id="decodeOutput" readonly placeholder="Decoded JSON will appear here..."></textarea>
+                        <button id="copyDecodeBtn" class="secondary-btn" style="display: none;">📋 Copy JSON</button>
                     </div>
                 </div>
             </section>

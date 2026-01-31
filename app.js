@@ -2,13 +2,16 @@
 let protoRoot = null;
 let currentMessageType = null;
 let binaryData = null;
+let allMessageTypes = [];
+let selectedIndex = -1;
 
 // DOM Elements
 const elements = {
     protoFileInput: document.getElementById('protoFileInput'),
     protoFileName: document.getElementById('protoFileName'),
     schemaStatus: document.getElementById('schemaStatus'),
-    messageTypeSelect: document.getElementById('messageTypeSelect'),
+    messageTypeInput: document.getElementById('messageTypeInput'),
+    messageTypeDropdown: document.getElementById('messageTypeDropdown'),
     selectFilesBtn: document.getElementById('selectFilesBtn'),
     selectFolderBtn: document.getElementById('selectFolderBtn'),
     
@@ -52,8 +55,13 @@ function init() {
     });
     elements.binaryFileInput.addEventListener('change', handleBinaryFileUpload);
     
-    // Message type selection
-    elements.messageTypeSelect.addEventListener('change', handleMessageTypeChange);
+    // Message type autocomplete
+    elements.messageTypeInput.addEventListener('input', handleMessageTypeInput);
+    elements.messageTypeInput.addEventListener('keydown', handleMessageTypeKeydown);
+    elements.messageTypeInput.addEventListener('focus', handleMessageTypeInput);
+    elements.messageTypeInput.addEventListener('blur', () => {
+        setTimeout(() => elements.messageTypeDropdown.classList.remove('show'), 200);
+    });
     
     // Action buttons
     elements.decodeBtn.addEventListener('click', handleDecode);
@@ -81,10 +89,10 @@ function switchTab(tabName) {
     elements.decodeTab.classList.remove('active');
     elements.encodeTab.classList.remove('active');
     
-    if (tabName === 'decode') {
-        elements.decodeTab.classList.add('active');
-    } else {
+    if (tabName === 'encode') {
         elements.encodeTab.classList.add('active');
+    } else {
+        elements.decodeTab.classList.add('active');
     }
     
     hideError();
@@ -189,16 +197,12 @@ async function loadProtoSchemas(protoFiles) {
             throw new Error('No message types found in the .proto file(s). Make sure your files contain message definitions.');
         }
         
-        // Populate message type dropdown
-        elements.messageTypeSelect.innerHTML = '<option value="">-- Select a message type --</option>';
-        messageTypes.forEach(type => {
-            const option = document.createElement('option');
-            option.value = type;
-            option.textContent = type;
-            elements.messageTypeSelect.appendChild(option);
-        });
+        // Store message types for autocomplete
+        allMessageTypes = messageTypes;
         
-        elements.messageTypeSelect.disabled = false;
+        // Enable input
+        elements.messageTypeInput.disabled = false;
+        elements.messageTypeInput.placeholder = 'Type to search message types...';
         
         // Show final status
         if (parseErrors.length > 0) {
@@ -245,10 +249,81 @@ function extractMessageTypes(root, prefix = '') {
     return types;
 }
 
-// Handle message type selection
-function handleMessageTypeChange(event) {
-    const messageTypeName = event.target.value;
+// Handle message type input (filtering)
+function handleMessageTypeInput(event) {
+    const query = elements.messageTypeInput.value.toLowerCase();
+    const filtered = allMessageTypes.filter(type => type.toLowerCase().includes(query));
     
+    selectedIndex = -1;
+    renderDropdown(filtered);
+}
+
+// Handle keyboard navigation
+function handleMessageTypeKeydown(event) {
+    const dropdown = elements.messageTypeDropdown;
+    const items = dropdown.querySelectorAll('.autocomplete-item');
+    
+    if (event.key === 'ArrowDown') {
+        event.preventDefault();
+        selectedIndex = Math.min(selectedIndex + 1, items.length - 1);
+        updateSelection(items);
+    } else if (event.key === 'ArrowUp') {
+        event.preventDefault();
+        selectedIndex = Math.max(selectedIndex - 1, -1);
+        updateSelection(items);
+    } else if (event.key === 'Enter' || event.key === 'Tab') {
+        event.preventDefault();
+        if (selectedIndex >= 0 && items[selectedIndex]) {
+            selectMessageType(items[selectedIndex].dataset.value);
+        } else if (items.length === 1) {
+            selectMessageType(items[0].dataset.value);
+        }
+    } else if (event.key === 'Escape') {
+        elements.messageTypeDropdown.classList.remove('show');
+        elements.messageTypeInput.blur();
+    }
+}
+
+// Render filtered dropdown
+function renderDropdown(types) {
+    const dropdown = elements.messageTypeDropdown;
+    dropdown.innerHTML = '';
+    
+    if (types.length === 0) {
+        dropdown.innerHTML = '<div class="autocomplete-no-results">No matching message types</div>';
+        dropdown.classList.add('show');
+        return;
+    }
+    
+    types.forEach((type, index) => {
+        const item = document.createElement('div');
+        item.className = 'autocomplete-item';
+        item.textContent = type;
+        item.dataset.value = type;
+        if (index === selectedIndex) {
+            item.classList.add('active');
+        }
+        item.addEventListener('mousedown', () => selectMessageType(type));
+        dropdown.appendChild(item);
+    });
+    
+    dropdown.classList.add('show');
+}
+
+// Update selection highlight
+function updateSelection(items) {
+    items.forEach((item, index) => {
+        if (index === selectedIndex) {
+            item.classList.add('active');
+            item.scrollIntoView({ block: 'nearest' });
+        } else {
+            item.classList.remove('active');
+        }
+    });
+}
+
+// Select a message type
+function selectMessageType(messageTypeName) {
     if (!messageTypeName) {
         currentMessageType = null;
         elements.decodeBtn.disabled = true;
@@ -259,6 +334,9 @@ function handleMessageTypeChange(event) {
     
     try {
         currentMessageType = protoRoot.lookupType(messageTypeName);
+        elements.messageTypeInput.value = messageTypeName;
+        elements.messageTypeDropdown.classList.remove('show');
+        
         elements.encodeBtn.disabled = false;
         elements.generateSampleBtn.disabled = false;
         
