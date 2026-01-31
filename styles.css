@@ -89,6 +89,13 @@ main {
     border-color: #764ba2;
 }
 
+.file-label.drag-over {
+    background: #e9ecff;
+    border-color: #764ba2;
+    border-style: solid;
+    transform: scale(1.02);
+}
+
 .file-icon {
     font-size: 24px;
 }

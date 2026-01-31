@@ -17,11 +17,11 @@
             <!-- Schema Upload Section -->
             <section class="card">
                 <h2>1. Upload Proto Schema</h2>
-                <div class="upload-area">
+                <div class="upload-area" id="protoUploadArea">
                     <input type="file" id="protoFileInput" accept=".proto" multiple webkitdirectory directory />
-                    <label for="protoFileInput" class="file-label">
+                    <label for="protoFileInput" class="file-label" id="protoFileLabel">
                         <span class="file-icon">📁</span>
-                        <span id="protoFileName">Choose .proto file(s) or folder - supports imports</span>
+                        <span id="protoFileName">Drag & drop .proto file(s) or folder here, or click to browse</span>
                     </label>
                 </div>
                 <div style="margin-top: 10px; display: flex; gap: 10px;">
@@ -75,11 +75,11 @@
                 <!-- Decode Tab -->
                 <div id="decode-tab" class="tab-content">
                     <h2>Decode Protobuf Binary</h2>
-                    <div class="upload-area">
+                    <div class="upload-area" id="binaryUploadArea">
                         <input type="file" id="binaryFileInput" accept=".bin,.pb,.protobuf" />
-                        <label for="binaryFileInput" class="file-label">
+                        <label for="binaryFileInput" class="file-label" id="binaryFileLabel">
                             <span class="file-icon">📦</span>
-                            <span id="binaryFileName">Choose binary file</span>
+                            <span id="binaryFileName">Drag & drop binary file here, or click to browse</span>
                         </label>
                     </div>
                     <button id="decodeBtn" class="action-btn" disabled>🔓 Decode to JSON</button>

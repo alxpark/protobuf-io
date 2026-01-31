@@ -9,6 +9,8 @@ let selectedIndex = -1;
 const elements = {
     protoFileInput: document.getElementById('protoFileInput'),
     protoFileName: document.getElementById('protoFileName'),
+    protoFileLabel: document.getElementById('protoFileLabel'),
+    protoUploadArea: document.getElementById('protoUploadArea'),
     schemaStatus: document.getElementById('schemaStatus'),
     messageTypeInput: document.getElementById('messageTypeInput'),
     messageTypeDropdown: document.getElementById('messageTypeDropdown'),
@@ -18,6 +20,8 @@ const elements = {
     // Decode elements
     binaryFileInput: document.getElementById('binaryFileInput'),
     binaryFileName: document.getElementById('binaryFileName'),
+    binaryFileLabel: document.getElementById('binaryFileLabel'),
+    binaryUploadArea: document.getElementById('binaryUploadArea'),
     decodeBtn: document.getElementById('decodeBtn'),
     decodeOutput: document.getElementById('decodeOutput'),
     copyDecodeBtn: document.getElementById('copyDecodeBtn'),
@@ -54,6 +58,12 @@ function init() {
         elements.protoFileInput.click();
     });
     elements.binaryFileInput.addEventListener('change', handleBinaryFileUpload);
+    
+    // Drag and drop for proto files
+    setupDragAndDrop(elements.protoFileLabel, handleProtoFileDrop);
+    
+    // Drag and drop for binary files
+    setupDragAndDrop(elements.binaryFileLabel, handleBinaryFileDrop);
     
     // Message type autocomplete
     elements.messageTypeInput.addEventListener('input', handleMessageTypeInput);
@@ -608,14 +618,41 @@ function bufferToHex(buffer) {
 // Utility: Copy to clipboard
 async function copyToClipboard(text) {
     try {
-        await navigator.clipboard.writeText(text);
-        showStatus('Copied to clipboard!', 'success');
-        setTimeout(() => {
-            elements.schemaStatus.textContent = '';
-            elements.schemaStatus.className = 'status-message';
-        }, 2000);
+        // Try modern clipboard API first
+        if (navigator.clipboard && window.isSecureContext) {
+            await navigator.clipboard.writeText(text);
+            showStatus('Copied to clipboard!', 'success');
+            setTimeout(() => {
+                elements.schemaStatus.textContent = '';
+                elements.schemaStatus.className = 'status-message';
+            }, 2000);
+        } else {
+            // Fallback for older browsers or non-secure contexts
+            const textArea = document.createElement('textarea');
+            textArea.value = text;
+            textArea.style.position = 'fixed';
+            textArea.style.left = '-999999px';
+            textArea.style.top = '-999999px';
+            document.body.appendChild(textArea);
+            textArea.focus();
+            textArea.select();
+            
+            const successful = document.execCommand('copy');
+            document.body.removeChild(textArea);
+            
+            if (successful) {
+                showStatus('Copied to clipboard!', 'success');
+                setTimeout(() => {
+                    elements.schemaStatus.textContent = '';
+                    elements.schemaStatus.className = 'status-message';
+                }, 2000);
+            } else {
+                throw new Error('Copy command failed');
+            }
+        }
     } catch (error) {
-        showError('Failed to copy to clipboard');
+        console.error('Copy failed:', error);
+        showError('Failed to copy to clipboard. Please copy manually.');
     }
 }
 
@@ -632,6 +669,133 @@ function hideError() {
 function showStatus(message, type) {
     elements.schemaStatus.textContent = type === 'success' ? `✅ ${message}` : `❌ ${message}`;
     elements.schemaStatus.className = `status-message ${type}`;
+}
+
+// Setup drag and drop for file upload
+function setupDragAndDrop(dropZone, handleDrop) {
+    ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
+        dropZone.addEventListener(eventName, preventDefaults, false);
+    });
+
+    function preventDefaults(e) {
+        e.preventDefault();
+        e.stopPropagation();
+    }
+
+    ['dragenter', 'dragover'].forEach(eventName => {
+        dropZone.addEventListener(eventName, () => {
+            dropZone.classList.add('drag-over');
+        }, false);
+    });
+
+    ['dragleave', 'drop'].forEach(eventName => {
+        dropZone.addEventListener(eventName, () => {
+            dropZone.classList.remove('drag-over');
+        }, false);
+    });
+
+    dropZone.addEventListener('drop', handleDrop, false);
+}
+
+// Handle proto file drop
+async function handleProtoFileDrop(e) {
+    const dt = e.dataTransfer;
+    const items = dt.items;
+    
+    if (items) {
+        const files = [];
+        
+        // Collect all files (including from folders)
+        for (let i = 0; i < items.length; i++) {
+            const item = items[i];
+            if (item.kind === 'file') {
+                const entry = item.webkitGetAsEntry();
+                if (entry) {
+                    await collectFiles(entry, files);
+                }
+            }
+        }
+        
+        // Filter .proto files and process
+        const protoFiles = files.filter(f => f.name.endsWith('.proto'));
+        
+        if (protoFiles.length === 0) {
+            showError('No .proto files found in dropped items');
+            return;
+        }
+        
+        if (protoFiles.length === 1) {
+            elements.protoFileName.textContent = protoFiles[0].name;
+        } else {
+            elements.protoFileName.textContent = `${protoFiles.length} .proto files dropped`;
+        }
+        
+        hideError();
+        
+        try {
+            const protoFileData = await Promise.all(
+                protoFiles.map(async file => ({
+                    name: file.name,
+                    path: file.fullPath || file.name,
+                    content: await readFileAsText(file)
+                }))
+            );
+            
+            await loadProtoSchemas(protoFileData);
+            showStatus(`Schema loaded successfully! (${protoFiles.length} file${protoFiles.length > 1 ? 's' : ''})`, 'success');
+        } catch (error) {
+            showError(`Failed to load schema: ${error.message}`);
+            showStatus('Failed to load schema', 'error');
+        }
+    }
+}
+
+// Recursively collect files from directory entries
+async function collectFiles(entry, files, path = '') {
+    if (entry.isFile) {
+        const file = await new Promise((resolve, reject) => {
+            entry.file(resolve, reject);
+        });
+        file.fullPath = path + file.name;
+        files.push(file);
+    } else if (entry.isDirectory) {
+        const reader = entry.createReader();
+        const entries = await new Promise((resolve, reject) => {
+            reader.readEntries(resolve, reject);
+        });
+        
+        for (const subEntry of entries) {
+            await collectFiles(subEntry, files, path + entry.name + '/');
+        }
+    }
+}
+
+// Handle binary file drop
+async function handleBinaryFileDrop(e) {
+    const dt = e.dataTransfer;
+    const files = dt.files;
+    
+    if (files.length === 0) {
+        showError('No files dropped');
+        return;
+    }
+    
+    // Take the first file only
+    const file = files[0];
+    
+    elements.binaryFileName.textContent = file.name;
+    hideError();
+    
+    try {
+        binaryData = await readFileAsArrayBuffer(file);
+        
+        if (currentMessageType) {
+            elements.decodeBtn.disabled = false;
+        }
+    } catch (error) {
+        showError(`Failed to read binary file: ${error.message}`);
+        binaryData = null;
+    }
 }
 
 // Initialize app when DOM is loaded
