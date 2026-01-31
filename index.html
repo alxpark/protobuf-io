@@ -55,7 +55,8 @@
                             <h3>JSON Input:</h3>
                             <div style="display: flex; align-items: center; gap: 10px;">
                                 <label for="maxDepthInput" style="font-size: 14px; color: #6c757d; white-space: nowrap;">Max Depth:</label>
-                                <input type="number" id="maxDepthInput" min="1" max="20" value="3" style="width: 60px; padding: 5px; border: 2px solid #e9ecef; border-radius: 4px; text-align: center;" title="Maximum nesting depth for sample generation (1-20)">
+                                <input type="range" id="maxDepthInput" min="1" max="20" value="3" style="width: 120px;" title="Maximum nesting depth for sample generation (1-20)">
+                                <span id="maxDepthValue" style="font-size: 14px; color: #6c757d; font-weight: bold; min-width: 25px; text-align: center;">3</span>
                                 <button id="generateSampleBtn" class="secondary-btn" disabled style="display: inline-block; margin: 0;">✨ Generate Sample JSON</button>
                                 <button id="downloadSampleBtn" class="secondary-btn" disabled style="display: none; margin: 0;">💾 Download Sample</button>
                             </div>

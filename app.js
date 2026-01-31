@@ -36,6 +36,7 @@ const elements = {
     generateSampleBtn: document.getElementById('generateSampleBtn'),
     downloadSampleBtn: document.getElementById('downloadSampleBtn'),
     maxDepthInput: document.getElementById('maxDepthInput'),
+    maxDepthValue: document.getElementById('maxDepthValue'),
     
     errorDisplay: document.getElementById('errorDisplay'),
     
@@ -83,6 +84,11 @@ function init() {
     
     // Monitor jsonInput for changes to update Download Sample button state
     elements.jsonInput.addEventListener('input', updateDownloadSampleButton);
+    
+    // Update max depth value display when slider changes
+    elements.maxDepthInput.addEventListener('input', () => {
+        elements.maxDepthValue.textContent = elements.maxDepthInput.value;
+    });
     
     // Copy buttons
     elements.copyDecodeBtn.addEventListener('click', () => copyToClipboard(elements.decodeOutput.value));
