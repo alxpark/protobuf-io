@@ -357,7 +357,7 @@ function generateSampleJSON() {
     }
     
     try {
-        const sampleData = generateSampleData(currentMessageType);
+        const sampleData = generateSampleData(currentMessageType, 0, new Set());
         const jsonString = JSON.stringify(sampleData, null, 2);
         elements.jsonInput.value = jsonString;
         hideError();
@@ -367,13 +367,22 @@ function generateSampleJSON() {
 }
 
 // Recursively generate sample data for a message type
-function generateSampleData(messageType) {
+function generateSampleData(messageType, depth = 0, visitedTypes = new Set()) {
+    const MAX_DEPTH = 3; // Prevent infinite recursion
+    
+    if (depth > MAX_DEPTH) {
+        return {}; // Return empty object at max depth
+    }
+    
     const sample = {};
     
     if (!messageType.fields) return sample;
     
+    // Track this type to detect circular references
+    const typeKey = messageType.fullName || messageType.name;
+    
     Object.values(messageType.fields).forEach(field => {
-        const value = generateFieldValue(field, messageType);
+        const value = generateFieldValue(field, messageType, depth, visitedTypes);
         if (value !== undefined) {
             sample[field.name] = value;
         }
@@ -383,17 +392,18 @@ function generateSampleData(messageType) {
 }
 
 // Generate value for a specific field
-function generateFieldValue(field, parentType) {
+function generateFieldValue(field, parentType, depth, visitedTypes) {
     // Handle repeated fields
     if (field.repeated) {
-        return [generateSingleFieldValue(field, parentType)];
+        // Only add one sample item for repeated fields
+        return [generateSingleFieldValue(field, parentType, depth, visitedTypes)];
     }
     
-    return generateSingleFieldValue(field, parentType);
+    return generateSingleFieldValue(field, parentType, depth, visitedTypes);
 }
 
 // Generate a single value based on field type
-function generateSingleFieldValue(field, parentType) {
+function generateSingleFieldValue(field, parentType, depth, visitedTypes) {
     // Handle enum types
     if (field.resolvedType && field.resolvedType instanceof protobuf.Enum) {
         const enumValues = Object.keys(field.resolvedType.values);
@@ -402,7 +412,18 @@ function generateSingleFieldValue(field, parentType) {
     
     // Handle nested message types
     if (field.resolvedType && field.resolvedType instanceof protobuf.Type) {
-        return generateSampleData(field.resolvedType);
+        const typeKey = field.resolvedType.fullName || field.resolvedType.name;
+        
+        // Check for circular reference
+        if (visitedTypes.has(typeKey)) {
+            return {}; // Return empty object for circular refs
+        }
+        
+        // Add to visited set for this branch
+        const newVisited = new Set(visitedTypes);
+        newVisited.add(typeKey);
+        
+        return generateSampleData(field.resolvedType, depth + 1, newVisited);
     }
     
     // Handle primitive types
