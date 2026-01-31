@@ -565,7 +565,6 @@ function generateSampleJSON() {
 // Update Download Sample button visibility and enabled state based on jsonInput content
 function updateDownloadSampleButton() {
     const hasContent = elements.jsonInput.value.trim().length > 0;
-    elements.downloadSampleBtn.style.display = hasContent ? 'inline-block' : 'none';
     elements.downloadSampleBtn.disabled = !hasContent;
 }
 
