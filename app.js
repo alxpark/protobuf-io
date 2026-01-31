@@ -77,32 +77,76 @@ function switchTab(tabName) {
 
 // Handle .proto file upload
 async function handleProtoFileUpload(event) {
-    const file = event.target.files[0];
-    if (!file) return;
+    const files = Array.from(event.target.files);
+    if (files.length === 0) return;
     
-    elements.protoFileName.textContent = file.name;
+    if (files.length === 1) {
+        elements.protoFileName.textContent = files[0].name;
+    } else {
+        elements.protoFileName.textContent = `${files.length} files selected`;
+    }
     hideError();
     
     try {
-        const protoContent = await readFileAsText(file);
-        await loadProtoSchema(protoContent, file.name);
-        showStatus('Schema loaded successfully!', 'success');
+        // Read all files
+        const protoFiles = await Promise.all(
+            files.map(async file => ({
+                name: file.name,
+                content: await readFileAsText(file)
+            }))
+        );
+        
+        await loadProtoSchemas(protoFiles);
+        showStatus(`Schema loaded successfully! (${files.length} file${files.length > 1 ? 's' : ''})`, 'success');
     } catch (error) {
         showError(`Failed to load schema: ${error.message}`);
         showStatus('Failed to load schema', 'error');
     }
 }
 
-// Load and parse .proto schema
-async function loadProtoSchema(protoContent, filename) {
+// Load and parse multiple .proto schemas
+async function loadProtoSchemas(protoFiles) {
     try {
-        protoRoot = protobuf.parse(protoContent, { keepCase: true }).root;
+        // Create a new root for parsing
+        protoRoot = new protobuf.Root();
+        
+        // Extract imports from all files
+        const allImports = new Set();
+        const uploadedFileNames = new Set(protoFiles.map(f => f.name));
+        
+        protoFiles.forEach(file => {
+            const imports = extractImports(file.content);
+            imports.forEach(imp => allImports.add(imp));
+        });
+        
+        // Check for missing imports
+        const missingImports = Array.from(allImports).filter(imp => {
+            const fileName = imp.split('/').pop(); // Get filename from path
+            return !uploadedFileNames.has(fileName) && !uploadedFileNames.has(imp);
+        });
+        
+        if (missingImports.length > 0) {
+            const fileList = missingImports.map(f => `  • ${f}`).join('\n');
+            showError(`Missing imported proto files:\n${fileList}\n\nPlease upload these files together with your main proto file.`);
+        }
+        
+        // Parse all files into the same root to resolve imports
+        for (const file of protoFiles) {
+            try {
+                protobuf.parse(file.content, protoRoot, { keepCase: true, filename: file.name });
+            } catch (error) {
+                throw new Error(`Error parsing ${file.name}: ${error.message}`);
+            }
+        }
+        
+        // Resolve all types
+        protoRoot.resolveAll();
         
         // Extract all message types
         const messageTypes = extractMessageTypes(protoRoot);
         
         if (messageTypes.length === 0) {
-            throw new Error('No message types found in the .proto file');
+            throw new Error('No message types found in the .proto file(s)');
         }
         
         // Populate message type dropdown
@@ -119,6 +163,19 @@ async function loadProtoSchema(protoContent, filename) {
     } catch (error) {
         throw new Error(`Schema parsing failed: ${error.message}`);
     }
+}
+
+// Extract import statements from proto content
+function extractImports(protoContent) {
+    const imports = [];
+    const importRegex = /^\s*import\s+["']([^"']+)["']\s*;/gm;
+    let match;
+    
+    while ((match = importRegex.exec(protoContent)) !== null) {
+        imports.push(match[1]);
+    }
+    
+    return imports;
 }
 
 // Extract message types from proto root
