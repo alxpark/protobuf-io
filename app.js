@@ -222,6 +222,10 @@ function handleDecode() {
 
 // Handle encode operation
 function handleEncode() {
+    console.log('handleEncode called');
+    console.log('currentMessageType:', currentMessageType);
+    console.log('jsonInput value:', elements.jsonInput.value);
+    
     if (!currentMessageType) {
         showError('Please select a message type');
         return;
@@ -235,15 +239,13 @@ function handleEncode() {
     
     try {
         const jsonObject = JSON.parse(jsonText);
+        console.log('Parsed JSON:', jsonObject);
         
-        // Verify the message
-        const errMsg = currentMessageType.verify(jsonObject);
-        if (errMsg) {
-            throw new Error(`Invalid message: ${errMsg}`);
-        }
+        // Create message from JSON (this handles enum conversion)
+        const message = currentMessageType.fromObject(jsonObject);
+        console.log('Created message:', message);
         
-        // Create and encode message
-        const message = currentMessageType.create(jsonObject);
+        // Encode message
         const buffer = currentMessageType.encode(message).finish();
         
         // Convert to hex for display
