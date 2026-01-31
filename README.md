@@ -2,6 +2,8 @@
 
 A powerful web application for encoding and decoding Protocol Buffer binary files with advanced features like randomized sample data generation, drag-and-drop support, and intelligent message type search.
 
+🌐 **[Try it online](https://alxpark.github.io/protobuf-io/)**
+
 ## Getting Started
 
 ### Installation
